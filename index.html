@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A slot machine that guesses Satoshi Nakamoto's Bitcoin private keys. Astronomically unlikely. Mathematically non-zero." />
+    <title>Satoshi Guesser</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <link rel="stylesheet" href="/src/styles/slot.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>SATOSHI GUESSER</h1>
+      <p class="tagline" id="tagline">Win up to … dollars!</p>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Jackpot</span>
+          <span class="stat-value" id="stat-jackpot-btc">…</span>
+          <span class="stat-sub" id="stat-jackpot-usd">…</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Odds per spin</span>
+          <span class="stat-value" id="stat-odds">…</span>
+          <span class="stat-sub" id="stat-odds-flavor">…</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Wallets in play</span>
+          <span class="stat-value" id="stat-wallet-count">…</span>
+          <span class="stat-sub" id="stat-snapshot">…</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="machine">
+        <div class="machine-frame">
+          <div class="reels" id="reels-classic" data-mode="classic">
+            <div class="reel" data-i="0"><span class="reel-symbol">?</span></div>
+            <div class="reel" data-i="1"><span class="reel-symbol">?</span></div>
+            <div class="reel" data-i="2"><span class="reel-symbol">?</span></div>
+          </div>
+          <div class="reels-realistic hidden" id="reels-realistic" data-mode="realistic">
+            <!-- 64 hex cells injected at runtime -->
+          </div>
+
+          <button class="lever" id="pull-btn" aria-label="Pull lever">
+            <span class="lever-text">PULL</span>
+          </button>
+        </div>
+
+        <div class="controls">
+          <label class="checkbox">
+            <input type="checkbox" id="toggle-realistic" />
+            <span>Realistic reels (64 hex)</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="toggle-no-delay" />
+            <span>No delay</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="toggle-autospin" />
+            <span>Autospin</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="toggle-sound" checked />
+            <span>Sound</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="log-wrap">
+        <label for="log">Log</label>
+        <textarea id="log" readonly aria-live="polite"></textarea>
+      </section>
+    </main>
+
+    <dialog id="win-dialog" class="win-dialog">
+      <div class="win-content">
+        <h2>You actually guessed Satoshi's wallet.</h2>
+        <p class="win-prize">
+          Prize: <strong id="win-btc">?</strong>
+          <span id="win-usd"></span>
+        </p>
+        <p>Matched address:</p>
+        <code id="win-address"></code>
+        <p>Private key (WIF):</p>
+        <code id="win-wif"></code>
+        <div class="win-actions">
+          <button id="win-copy">Copy private key</button>
+          <button id="win-close">Close</button>
+        </div>
+        <p class="win-note">
+          Sweep this into a wallet you control. Don't lose it.
+        </p>
+      </div>
+    </dialog>
+
+    <footer>
+      <small>
+        100% client-side. Open the source — there's no server, no API, no
+        catch. Guesses are real, the odds are just real bad.
+      </small>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
