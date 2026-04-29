@@ -49,13 +49,31 @@
         </div>
 
         <div class="controls">
+          <button class="settings-btn" id="settings-btn" type="button" aria-label="Settings">
+            <span aria-hidden="true">⚙</span> Settings
+          </button>
+        </div>
+      </section>
+
+      <section class="log-wrap">
+        <label for="log">Log</label>
+        <textarea id="log" readonly aria-live="polite"></textarea>
+      </section>
+    </main>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+      <div class="settings-content">
+        <h2>Settings</h2>
+
+        <section class="settings-section">
+          <h3>Reels &amp; sound</h3>
           <label class="checkbox">
             <input type="checkbox" id="toggle-realistic" />
             <span>Hexadecimal reels (64 hex)</span>
           </label>
           <label class="checkbox">
             <input type="checkbox" id="toggle-no-delay" />
-            <span>No delay</span>
+            <span>No delay (skip animation)</span>
           </label>
           <label class="checkbox">
             <input type="checkbox" id="toggle-autospin" />
@@ -65,14 +83,35 @@
             <input type="checkbox" id="toggle-sound" checked />
             <span>Sound</span>
           </label>
-        </div>
-      </section>
+        </section>
 
-      <section class="log-wrap">
-        <label for="log">Log</label>
-        <textarea id="log" readonly aria-live="polite"></textarea>
-      </section>
-    </main>
+        <section class="settings-section">
+          <h3>Check a private key</h3>
+          <p class="settings-hint">
+            Paste a 64-character hex private key or a Base58 WIF
+            (starts with <code>5</code>, <code>K</code>, or <code>L</code>)
+            to test it directly.
+          </p>
+          <input
+            type="text"
+            id="manual-key-input"
+            class="manual-input"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            placeholder="64 hex chars or Base58 WIF…"
+          />
+          <div class="manual-actions">
+            <button id="manual-check-btn" type="button">Check</button>
+            <span id="manual-result" class="manual-result"></span>
+          </div>
+        </section>
+
+        <div class="settings-actions">
+          <button id="settings-close" type="button">Close</button>
+        </div>
+      </div>
+    </dialog>
 
     <dialog id="win-dialog" class="win-dialog">
       <div class="win-content">

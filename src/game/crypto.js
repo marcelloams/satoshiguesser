@@ -67,3 +67,34 @@ export function hexToBytes(hex) {
   }
   return out;
 }
+
+export function wifToPrivKey(wif) {
+  const payload = b58c.decode(wif);
+  if (payload[0] !== VERSION_WIF_MAINNET) {
+    throw new Error('not a mainnet WIF');
+  }
+  if (payload.length === 33) {
+    return { privKey: payload.slice(1), compressed: false };
+  }
+  if (payload.length === 34 && payload[33] === COMPRESSED_FLAG) {
+    return { privKey: payload.slice(1, 33), compressed: true };
+  }
+  throw new Error('invalid WIF length');
+}
+
+const HEX_RE = /^[0-9a-f]{64}$/i;
+const WIF_RE = /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/;
+
+export function parsePrivKey(input) {
+  const s = input.trim().replace(/^0x/i, '');
+  if (HEX_RE.test(s)) {
+    return { privKey: hexToBytes(s.toLowerCase()), compressed: null, format: 'hex' };
+  }
+  if (WIF_RE.test(input.trim())) {
+    const { privKey, compressed } = wifToPrivKey(input.trim());
+    return { privKey, compressed, format: 'wif' };
+  }
+  throw new Error(
+    'Unrecognised key format. Expected 64 hex characters or a Base58 WIF (starts with 5, K, or L).'
+  );
+}

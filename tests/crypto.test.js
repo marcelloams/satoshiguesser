@@ -5,6 +5,8 @@ import {
   hash160,
   hash160ToAddress,
   privKeyToWif,
+  wifToPrivKey,
+  parsePrivKey,
   hexToBytes,
   bytesToHex,
 } from '../src/game/crypto.js';
@@ -47,4 +49,31 @@ test('hex round-trip', () => {
   const bytes = new Uint8Array([0, 1, 0xab, 0xff]);
   assert.equal(bytesToHex(bytes), '0001abff');
   assert.deepEqual(hexToBytes('0001abff'), bytes);
+});
+
+test('WIF round-trip (uncompressed)', () => {
+  const privHex =
+    '0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d';
+  const wif = '5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ';
+  const decoded = wifToPrivKey(wif);
+  assert.equal(decoded.compressed, false);
+  assert.equal(bytesToHex(decoded.privKey), privHex);
+});
+
+test('parsePrivKey accepts hex and WIF', () => {
+  const hex =
+    '18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725';
+  const fromHex = parsePrivKey(hex);
+  assert.equal(fromHex.format, 'hex');
+  assert.equal(bytesToHex(fromHex.privKey), hex);
+
+  const wif = '5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ';
+  const fromWif = parsePrivKey(wif);
+  assert.equal(fromWif.format, 'wif');
+  assert.equal(fromWif.compressed, false);
+});
+
+test('parsePrivKey rejects bad input', () => {
+  assert.throws(() => parsePrivKey('hello world'));
+  assert.throws(() => parsePrivKey('deadbeef')); // too short
 });

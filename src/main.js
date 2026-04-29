@@ -1,6 +1,11 @@
 import { spin } from './game/spin.js';
-import { loadStats, loadBloom } from './game/wallets.js';
-import { hash160ToAddress, randomPrivKey, deriveAll } from './game/crypto.js';
+import { loadStats, loadBloom, checkHash160s } from './game/wallets.js';
+import {
+  hash160ToAddress,
+  randomPrivKey,
+  deriveAll,
+  parsePrivKey,
+} from './game/crypto.js';
 import { Log } from './ui/log.js';
 import { ClassicReels } from './ui/slot-classic.js';
 import { RealisticReels } from './ui/slot-realistic.js';
@@ -121,6 +126,82 @@ async function main() {
     if (e.target.checked && !busy) onPull();
   });
 
+  // Settings dialog ----------------------------------------------------------
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsDialog = document.getElementById('settings-dialog');
+  const settingsClose = document.getElementById('settings-close');
+  const manualInput = document.getElementById('manual-key-input');
+  const manualBtn = document.getElementById('manual-check-btn');
+  const manualResult = document.getElementById('manual-result');
+
+  settingsBtn.addEventListener('click', () => {
+    if (typeof settingsDialog.showModal === 'function') {
+      settingsDialog.showModal();
+    } else {
+      settingsDialog.setAttribute('open', '');
+    }
+  });
+  settingsClose.addEventListener('click', () => settingsDialog.close());
+
+  function setManualResult(text, kind) {
+    manualResult.textContent = text;
+    manualResult.classList.remove('ok', 'fail', 'err');
+    if (kind) manualResult.classList.add(kind);
+  }
+
+  async function onManualCheck() {
+    setManualResult('', null);
+    const raw = manualInput.value.trim();
+    if (!raw) {
+      setManualResult('Enter a private key first.', 'err');
+      return;
+    }
+    let parsed;
+    try {
+      parsed = parsePrivKey(raw);
+    } catch (err) {
+      setManualResult(err.message, 'err');
+      return;
+    }
+    setManualResult('Checking…', null);
+    try {
+      const derived = deriveAll(parsed.privKey);
+      const candidates = [
+        derived.hash160Uncompressed,
+        derived.hash160Compressed,
+      ];
+      const hit = await checkHash160s(candidates);
+      log.append(
+        `manual: addr=${derived.addressUncompressed.slice(0, 8)}… ` +
+          `(${parsed.format}) → ${hit ? 'MATCH' : 'no match'}`
+      );
+      if (hit) {
+        setManualResult('🎉 Match! Opening prize dialog…', 'ok');
+        settingsDialog.close();
+        winDialog.show({
+          privKey: parsed.privKey,
+          derived,
+          match: hit,
+        });
+      } else {
+        setManualResult(
+          `No match. Address: ${derived.addressUncompressed}`,
+          'fail'
+        );
+      }
+    } catch (err) {
+      setManualResult(`Error: ${err.message}`, 'err');
+    }
+  }
+
+  manualBtn.addEventListener('click', onManualCheck);
+  manualInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onManualCheck();
+    }
+  });
+
   // Dev-win flag for QA / curious source-readers.
   const devWin = new URLSearchParams(location.search).get('devwin') === '1';
 
@@ -201,10 +282,12 @@ async function main() {
 
   pullBtn.addEventListener('click', onPull);
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && document.activeElement !== document.getElementById('log')) {
-      e.preventDefault();
-      onPull();
-    }
+    if (e.code !== 'Space') return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (settingsDialog.open || document.getElementById('win-dialog').open) return;
+    e.preventDefault();
+    onPull();
   });
 }
 
