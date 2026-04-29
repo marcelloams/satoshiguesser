@@ -10,8 +10,9 @@
     "predev": "npm run build:wallets",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
+    "preview": "npm run build && wrangler dev",
+    "test": "node --test tests/*.test.js",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@noble/hashes": "^1.4.0",
@@ -20,6 +21,8 @@
     "canvas-confetti": "^1.9.3"
   },
   "devDependencies": {
-    "vite": "^6.0.0"
+    "@cloudflare/vite-plugin": "^1.34.0",
+    "vite": "^6.0.0",
+    "wrangler": "^4.86.0"
   }
 }
