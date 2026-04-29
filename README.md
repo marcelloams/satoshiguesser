@@ -295,4 +295,4 @@ heat death of the universe occurs first, by a comically wide margin.
 
 ## License
 
-TBD.
+MIT
