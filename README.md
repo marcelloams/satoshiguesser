@@ -6,9 +6,9 @@ the cryptography is real: every pull rolls a random 256-bit number, derives
 the Bitcoin address, and checks it against a curated set of ~22,000
 Patoshi-pattern coinbase addresses plus the genesis block. If the derived
 address ever matches, the random number you rolled **is** the working
-private key for that wallet.
+private key for that wallet — no server, no API, no catch.
 
-Live at **[satoshiguesser.com](https://satoshiguesser.com)**
+Live at **[satoshiguesser.com](https://satoshiguesser.com)** (when deployed).
 
 ---
 
@@ -227,6 +227,31 @@ multiplication. The data set could grow 100× and you'd notice the page
 being heavier on first load and absolutely nothing else at runtime.
 
 ---
+
+## Deploy to Cloudflare Pages
+
+This is a static site — no Workers, no Durable Objects, no R2.
+
+### Path A — Pages + Git (recommended)
+
+1. Push the repo to GitHub.
+2. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → connect repo.
+3. Build settings:
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+   - Root directory: (blank)
+4. Save and deploy. Auto-redeploys on every push.
+5. **Custom domain** → add `satoshiguesser.com` and `www.satoshiguesser.com`. If the
+   domain is in your Cloudflare account, DNS auto-wires.
+
+### Path B — Wrangler direct upload
+
+```bash
+npm install -D wrangler
+npx wrangler login
+npm run build
+npx wrangler pages deploy dist --project-name satoshi-guesser
+```
 
 ### Pre-flight
 

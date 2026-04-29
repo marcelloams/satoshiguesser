@@ -6,3 +6,4 @@ dist/
 public/data/satoshi-wallets.bin
 public/data/satoshi-bloom.bin
 public/data/wallet-stats.json
+.claude/settings.local.json
