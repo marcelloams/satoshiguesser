@@ -28,6 +28,11 @@
           <span class="stat-value" id="stat-wallet-count">…</span>
           <span class="stat-sub" id="stat-snapshot">…</span>
         </div>
+        <div class="stat">
+          <span class="stat-label">Speed</span>
+          <span class="stat-value" id="stat-speed">0</span>
+          <span class="stat-sub">spins / sec</span>
+        </div>
       </div>
     </header>
 
@@ -49,6 +54,14 @@
         </div>
 
         <div class="controls">
+          <label class="checkbox control-toggle">
+            <input type="checkbox" id="toggle-autospin" />
+            <span>Autospin</span>
+          </label>
+          <label class="checkbox control-toggle">
+            <input type="checkbox" id="toggle-no-delay" />
+            <span>Turbo Mode (Max CPU)</span>
+          </label>
           <button class="settings-btn" id="settings-btn" type="button" aria-label="Settings">
             <span aria-hidden="true">⚙</span> Settings
           </button>
@@ -70,14 +83,6 @@
           <label class="checkbox">
             <input type="checkbox" id="toggle-realistic" />
             <span>Hexadecimal reels (64 hex)</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="toggle-no-delay" />
-            <span>No delay (skip animation)</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="toggle-autospin" />
-            <span>Autospin</span>
           </label>
           <label class="checkbox">
             <input type="checkbox" id="toggle-sound" checked />

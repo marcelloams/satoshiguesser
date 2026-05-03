@@ -16,7 +16,7 @@ import { sfx, setMuted, unlock } from './audio/audio.js';
 // the natural duration of the spin animation. With "no delay" on, autospin
 // drops to one frame per spin so the CPU doesn't get pegged.
 const AUTOSPIN_DELAY_MS = 250;
-const AUTOSPIN_DELAY_NO_DELAY_MS = 16;
+const AUTOSPIN_DELAY_NO_DELAY_MS = 0;
 const SATS_PER_BTC = 100_000_000;
 
 function fmtNumber(n) {
@@ -117,6 +117,25 @@ async function main() {
     }
   });
 
+  // Speed Tracking
+  let totalSpins = 0;
+  let spinsSinceLastUpdate = 0;
+  let lastSpeedUpdate = performance.now();
+  const speedElement = document.getElementById('stat-speed');
+
+  function updateSpeed() {
+    const now = performance.now();
+    const elapsed = now - lastSpeedUpdate;
+    if (elapsed > 500) {
+      const sps = Math.round((spinsSinceLastUpdate / elapsed) * 1000);
+      speedElement.textContent = fmtNumber(sps);
+      spinsSinceLastUpdate = 0;
+      lastSpeedUpdate = now;
+    }
+    requestAnimationFrame(updateSpeed);
+  }
+  requestAnimationFrame(updateSpeed);
+
   setMuted(!soundToggle.checked);
   soundToggle.addEventListener('change', (e) => {
     setMuted(!e.target.checked);
@@ -124,6 +143,14 @@ async function main() {
 
   autospinToggle.addEventListener('change', (e) => {
     if (e.target.checked && !busy) onPull();
+    if (!e.target.checked && workersRunning) stopWorkers();
+  });
+
+  noDelayToggle.addEventListener('change', (e) => {
+    if (!e.target.checked && workersRunning) {
+      stopWorkers();
+      if (autospinToggle.checked && !busy) onPull();
+    }
   });
 
   // Settings dialog ----------------------------------------------------------
@@ -205,9 +232,73 @@ async function main() {
   // Dev-win flag for QA / curious source-readers.
   const devWin = new URLSearchParams(location.search).get('devwin') === '1';
 
+  // Web Workers Setup
+  const numWorkers = navigator.hardwareConcurrency || 4;
+  const workers = [];
+  let workersRunning = false;
+
+  for (let i = 0; i < numWorkers; i++) {
+    const w = new Worker(new URL('./game/worker.js', import.meta.url), { type: 'module' });
+    w.onmessage = (e) => {
+      const data = e.data;
+      if (data.type === 'batch_complete') {
+        spinsSinceLastUpdate += data.count;
+        totalSpins += data.count;
+
+        // Flash UI occasionally so the user knows it's doing something
+        if (totalSpins % (data.count * 2) === 0 || data.winResult) {
+          log.append(`[Worker ${i}] key=${shorten(data.lastHex, 6)}`);
+          if (realisticMode) realistic.flashResult(data.lastHex, !!data.winResult);
+          else classic.flashResult(!!data.winResult);
+        }
+
+        if (data.winResult) {
+          stopWorkers();
+          handleWin(data.winResult);
+        }
+      }
+    };
+    workers.push(w);
+  }
+
+  function startWorkers() {
+    if (workersRunning) return;
+    workersRunning = true;
+    for (const w of workers) w.postMessage({ cmd: 'start' });
+    pullBtn.disabled = true;
+    unlock();
+    sfx.lever();
+    busy = true;
+  }
+
+  function stopWorkers() {
+    if (!workersRunning) return;
+    workersRunning = false;
+    for (const w of workers) w.postMessage({ cmd: 'stop' });
+    pullBtn.disabled = false;
+    busy = false;
+  }
+
+  function handleWin(result) {
+    const matchedAddress = hash160ToAddress(result.match.hash160);
+    log.append(`🎉 MATCH: ${matchedAddress} (${(Number(result.match.balanceSats) / SATS_PER_BTC).toFixed(8)} BTC)`);
+    sfx.win();
+    if (autospinToggle.checked) autospinToggle.checked = false;
+    winDialog.show(result);
+  }
+
   let busy = false;
   async function onPull() {
     if (busy) return;
+    
+    const noDelay = noDelayToggle.checked;
+    const autospin = autospinToggle.checked;
+
+    if (noDelay && autospin) {
+      startWorkers();
+      return;
+    }
+
     busy = true;
     pullBtn.disabled = true;
     unlock();
@@ -215,9 +306,6 @@ async function main() {
 
     let forced = null;
     if (devWin) {
-      // Force a "win" against the genesis address by reusing its hash160.
-      // We don't actually have Satoshi's privkey, so the WIF shown will
-      // unlock nothing — it's purely for verifying the win UX.
       const priv = randomPrivKey();
       const derived = deriveAll(priv);
       const fakeMatch = {
@@ -228,16 +316,19 @@ async function main() {
     }
 
     const reels = realisticMode ? realistic : classic;
-    const noDelay = noDelayToggle.checked;
 
     if (!noDelay) reels.startSpin();
 
     let result;
     if (noDelay) {
       result = await spin({ devWin: forced });
+      spinsSinceLastUpdate++;
+      totalSpins++;
     } else {
       const spinAnim = new Promise((r) => setTimeout(r, 1100));
       [, result] = await Promise.all([spinAnim, spin({ devWin: forced })]);
+      spinsSinceLastUpdate++;
+      totalSpins++;
     }
 
     log.append(
@@ -255,15 +346,7 @@ async function main() {
     }
 
     if (result.win) {
-      const matchedAddress = hash160ToAddress(result.match.hash160);
-      log.append(
-        `🎉 MATCH: ${matchedAddress} ` +
-          `(${(Number(result.match.balanceSats) / SATS_PER_BTC).toFixed(8)} BTC)`
-      );
-      sfx.win();
-      // Stop autospin on win — let the player see what happened.
-      if (autospinToggle.checked) autospinToggle.checked = false;
-      winDialog.show(result);
+      handleWin(result);
     } else {
       log.append('→ no match');
       sfx.lose();
@@ -272,11 +355,8 @@ async function main() {
     busy = false;
     pullBtn.disabled = false;
 
-    if (autospinToggle.checked) {
-      const delay = noDelayToggle.checked
-        ? AUTOSPIN_DELAY_NO_DELAY_MS
-        : AUTOSPIN_DELAY_MS;
-      setTimeout(onPull, delay);
+    if (autospinToggle.checked && !noDelayToggle.checked) {
+      setTimeout(onPull, AUTOSPIN_DELAY_MS);
     }
   }
 
